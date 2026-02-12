@@ -7,6 +7,7 @@ import re
 import urllib3
 
 from changedetectionio.conditions import execute_ruleset_against_all_plugins
+from changedetectionio.content_fetchers.exceptions import checksumFromPreviousCheckWasTheSame
 from ..base import difference_detection_processor
 from changedetectionio.html_tools import PERL_STYLE_REGEX, cdata_in_document_to_text, TRANSLATE_WHITESPACE_TABLE
 from changedetectionio import html_tools, content_fetchers
@@ -368,11 +369,15 @@ class ChecksumCalculator:
 # (set_proxy_from_list)
 class perform_site_check(difference_detection_processor):
 
-    def run_changedetection(self, watch):
+    def run_changedetection(self, watch, force_reprocess=False):
         changed_detected = False
 
         if not watch:
             raise Exception("Watch no longer exists.")
+
+        current_raw_document_checksum = self.get_raw_document_checksum()
+        if not force_reprocess and watch.get('previous_md5_before_filters') and watch.get('previous_md5_before_filters') == current_raw_document_checksum:
+            raise checksumFromPreviousCheckWasTheSame()
 
         # Initialize components
         filter_config = FilterConfig(watch, self.datastore)
@@ -393,7 +398,7 @@ class perform_site_check(difference_detection_processor):
 
         # Track the content type and checksum before filters
         update_obj['content_type'] = ctype_header
-        update_obj['previous_md5_before_filters'] = hashlib.md5(self.fetcher.content.encode('utf-8')).hexdigest()
+        update_obj['previous_md5_before_filters'] = current_raw_document_checksum
 
         # === CONTENT PREPROCESSING ===
         # Avoid creating unnecessary intermediate string copies by reassigning only when needed

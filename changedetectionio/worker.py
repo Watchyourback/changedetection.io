@@ -276,6 +276,7 @@ async def async_update_worker(worker_id, q, notification_q, app, datastore, exec
                     # Yes fine, so nothing todo, don't continue to process.
                     process_changedetection_results = False
                     changed_detected = False
+                    logger.debug(f'[{uuid}] - checksumFromPreviousCheckWasTheSame - Checksum from previous check was the same, nothing todo here.')
                     
                 except content_fetchers_exceptions.BrowserConnectError as e:
                     datastore.update_watch(uuid=uuid,

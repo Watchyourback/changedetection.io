@@ -257,8 +257,16 @@ class difference_detection_processor():
         except IOError as e:
             logger.error(f"Failed to write extra watch config {filename}: {e}")
 
+    def get_raw_document_checksum(self):
+        checksum = None
+
+        if self.fetcher.content:
+            checksum = hashlib.md5(self.fetcher.content.encode('utf-8')).hexdigest()
+
+        return checksum
+
     @abstractmethod
-    def run_changedetection(self, watch):
+    def run_changedetection(self, watch, force_reprocess=False):
         update_obj = {'last_notification_error': False, 'last_error': False}
         some_data = 'xxxxx'
         update_obj["previous_md5"] = hashlib.md5(some_data.encode('utf-8')).hexdigest()

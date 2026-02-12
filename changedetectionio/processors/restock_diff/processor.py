@@ -2,6 +2,7 @@ from ..base import difference_detection_processor
 from ..exceptions import ProcessorException
 from . import Restock
 from loguru import logger
+from changedetectionio.content_fetchers.exceptions import checksumFromPreviousCheckWasTheSame
 
 import urllib3
 import time
@@ -403,11 +404,15 @@ class perform_site_check(difference_detection_processor):
     screenshot = None
     xpath_data = None
 
-    def run_changedetection(self, watch):
+    def run_changedetection(self, watch, force_reprocess=False):
         import hashlib
 
         if not watch:
             raise Exception("Watch no longer exists.")
+
+        current_raw_document_checksum = self.get_raw_document_checksum()
+        if not force_reprocess and watch.get('previous_md5_before_filters') and watch.get('previous_md5_before_filters') == current_raw_document_checksum:
+            raise checksumFromPreviousCheckWasTheSame()
 
         # Unset any existing notification error
         update_obj = {'last_notification_error': False, 'last_error': False, 'restock':  Restock()}
@@ -418,6 +423,7 @@ class perform_site_check(difference_detection_processor):
         # Track the content type
         update_obj['content_type'] = self.fetcher.headers.get('Content-Type', '')
         update_obj["last_check_status"] = self.fetcher.get_last_status_code()
+        update_obj['previous_md5_before_filters'] = current_raw_document_checksum
 
         # Only try to process restock information (like scraping for keywords) if the page was actually rendered correctly.
         # Otherwise it will assume "in stock" because nothing suggesting the opposite was found

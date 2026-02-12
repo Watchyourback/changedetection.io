@@ -190,7 +190,7 @@ def get_plugin_processor_metadata():
         logger.warning(f"Error getting plugin processor metadata: {e}")
     return metadata
 
-
+@lru_cache(maxsize=1)
 def available_processors():
     """
     Get a list of processors by name and description for the UI elements.
